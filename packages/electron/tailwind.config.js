@@ -5,28 +5,36 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#1a1a1a',
+        // Arc-style dark theme
+        background: '#161616',
         foreground: '#ffffff',
-        card: '#2d2d2d',
+        card: '#1c1c1e',
         'card-foreground': '#ffffff',
-        border: '#444444',
-        input: '#1a1a1a',
+        border: '#2d2d2d',
+        input: '#232325',
         primary: {
-          DEFAULT: '#4285f4',
+          DEFAULT: '#8b5cf6', // Purple accent
           foreground: '#ffffff',
         },
         secondary: {
-          DEFAULT: '#3d3d3d',
+          DEFAULT: '#2d2d2f',
           foreground: '#ffffff',
         },
         muted: {
-          DEFAULT: '#888888',
-          foreground: '#aaaaaa',
+          DEFAULT: '#6b6b6b',
+          foreground: '#9a9a9a',
         },
         destructive: {
-          DEFAULT: '#dc3545',
+          DEFAULT: '#ef4444',
           foreground: '#ffffff',
         },
+        // Additional Arc-style colors
+        surface: '#232325',
+        'surface-hover': '#2d2d2f',
+        accent: '#8b5cf6',
+      },
+      borderRadius: {
+        DEFAULT: '8px',
       },
     },
   },

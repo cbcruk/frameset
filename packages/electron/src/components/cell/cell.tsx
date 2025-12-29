@@ -1,52 +1,75 @@
 import { useRef, useEffect, useState } from 'react'
 import { Button } from '../ui/button'
-import { RefreshCw, ArrowLeft, ArrowRight, Wrench } from 'lucide-react'
+import {
+  RefreshCw,
+  ArrowLeft,
+  ArrowRight,
+  MoreHorizontal,
+  Lock,
+  Plus,
+} from 'lucide-react'
 import type { CellProps } from './cell.types'
 
 export function Cell({ url, index, userAgent }: CellProps) {
   const webviewRef = useRef<Electron.WebviewTag>(null)
-  const [title, setTitle] = useState(() => {
+  const [currentUrl, setCurrentUrl] = useState(url)
+  const [isLoading, setIsLoading] = useState(true)
+  const [canGoBack, setCanGoBack] = useState(false)
+  const [canGoForward, setCanGoForward] = useState(false)
+
+  const hostname = (() => {
     try {
-      return new URL(url).hostname
+      return new URL(currentUrl).hostname
     } catch {
-      return url
+      return currentUrl
     }
-  })
+  })()
+
+  const isSecure = currentUrl.startsWith('https://')
 
   useEffect(() => {
     const webview = webviewRef.current
-
     if (!webview) return
 
-    const handleTitleUpdate = (e: Event) => {
-      const event = e as unknown as { title: string }
-
-      if (event.title) {
-        setTitle(event.title)
-      }
+    const handleNavigation = () => {
+      setCurrentUrl(webview.getURL())
+      setCanGoBack(webview.canGoBack())
+      setCanGoForward(webview.canGoForward())
     }
 
-    webview.addEventListener('page-title-updated', handleTitleUpdate)
+    const handleStartLoading = () => setIsLoading(true)
+    const handleStopLoading = () => {
+      setIsLoading(false)
+      handleNavigation()
+    }
+
+    webview.addEventListener('did-navigate', handleNavigation)
+    webview.addEventListener('did-navigate-in-page', handleNavigation)
+    webview.addEventListener('did-start-loading', handleStartLoading)
+    webview.addEventListener('did-stop-loading', handleStopLoading)
 
     return () => {
-      webview.removeEventListener('page-title-updated', handleTitleUpdate)
+      webview.removeEventListener('did-navigate', handleNavigation)
+      webview.removeEventListener('did-navigate-in-page', handleNavigation)
+      webview.removeEventListener('did-start-loading', handleStartLoading)
+      webview.removeEventListener('did-stop-loading', handleStopLoading)
     }
   }, [])
 
   const handleRefresh = () => {
-    webviewRef.current?.reload()
+    if (isLoading) {
+      webviewRef.current?.stop()
+    } else {
+      webviewRef.current?.reload()
+    }
   }
 
   const handleBack = () => {
-    if (webviewRef.current?.canGoBack()) {
-      webviewRef.current.goBack()
-    }
+    webviewRef.current?.goBack()
   }
 
   const handleForward = () => {
-    if (webviewRef.current?.canGoForward()) {
-      webviewRef.current.goForward()
-    }
+    webviewRef.current?.goForward()
   }
 
   const handleDevTools = () => {
@@ -54,41 +77,56 @@ export function Cell({ url, index, userAgent }: CellProps) {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-card border border-border rounded overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
-        <span className="text-sm text-foreground truncate flex-1" title={title}>
-          {title}
-        </span>
-        <div className="flex items-center gap-1 ml-2">
+    <div className="flex flex-col h-full min-h-0 bg-background rounded-lg overflow-hidden">
+      <div className="flex items-center gap-1 px-2 py-1.5 bg-card shrink-0">
+        <div className="flex items-center">
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleRefresh}
-            title="새로고침"
+            className={`h-7 w-7 ${canGoBack ? 'text-muted-foreground hover:text-foreground' : 'text-muted opacity-40'}`}
+            onClick={handleBack}
+            disabled={!canGoBack}
           >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleBack} title="뒤로">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
+            className={`h-7 w-7 ${canGoForward ? 'text-muted-foreground hover:text-foreground' : 'text-muted opacity-40'}`}
             onClick={handleForward}
-            title="앞으로"
+            disabled={!canGoForward}
           >
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        <div className="flex-1 flex items-center gap-2 bg-surface rounded-md px-3 py-1.5 mx-1">
+          {isSecure && <Lock className="h-3 w-3 text-muted-foreground shrink-0" />}
+          <span className="text-xs text-muted-foreground truncate">
+            {hostname}
+          </span>
+        </div>
+
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            onClick={handleRefresh}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
           <Button
             variant="ghost"
             size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
             onClick={handleDevTools}
-            title="개발자 도구"
           >
-            <Wrench className="h-4 w-4" />
+            <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
+
       <webview
         ref={webviewRef}
         src={url}
@@ -104,8 +142,11 @@ export function Cell({ url, index, userAgent }: CellProps) {
 
 export function EmptyCell() {
   return (
-    <div className="flex items-center justify-center h-full bg-card border border-border rounded">
-      <span className="text-muted-foreground">사이트를 추가하세요</span>
+    <div className="flex flex-col items-center justify-center h-full bg-card rounded-lg gap-3">
+      <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center">
+        <Plus className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <span className="text-sm text-muted-foreground">Add a site from sidebar</span>
     </div>
   )
 }
