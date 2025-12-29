@@ -1,0 +1,20 @@
+{
+  "name": "frameset",
+  "version": "1.0.0",
+  "private": true,
+  "description": "여러 웹사이트를 한 화면에 그리드로 모아보기",
+  "scripts": {
+    "electron:start": "pnpm --filter @frameset/electron start",
+    "electron:build": "pnpm --filter @frameset/electron build",
+    "electron:build:mac": "pnpm --filter @frameset/electron build:mac",
+    "electron:build:win": "pnpm --filter @frameset/electron build:win"
+  },
+  "keywords": [
+    "browser",
+    "grid",
+    "multi-view",
+    "electron",
+    "chrome-extension"
+  ],
+  "license": "MIT"
+}
